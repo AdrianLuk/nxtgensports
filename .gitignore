@@ -12,3 +12,6 @@ node_modules
 # wordpress specific
 wp-config.php
 wp-content/uploads/
+
+# cache stuff
+endurance-page-cache/
