@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Astra functions and definitions
  *
@@ -8,25 +9,25 @@
  * @since 1.0.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
 	exit; // Exit if accessed directly.
 }
 
 /**
  * Define Constants
  */
-define( 'ASTRA_THEME_VERSION', '4.1.7' );
-define( 'ASTRA_THEME_SETTINGS', 'astra-settings' );
-define( 'ASTRA_THEME_DIR', trailingslashit( get_template_directory() ) );
-define( 'ASTRA_THEME_URI', trailingslashit( esc_url( get_template_directory_uri() ) ) );
-define( 'ASTRA_PRO_UPGRADE_URL', 'https://wpastra.com/pro/?utm_source=dashboard&utm_medium=free-theme&utm_campaign=upgrade-now' );
-define( 'ASTRA_PRO_CUSTOMIZER_UPGRADE_URL', 'https://wpastra.com/pro/?utm_source=customizer&utm_medium=free-theme&utm_campaign=upgrade' );
+define('ASTRA_THEME_VERSION', '4.1.7');
+define('ASTRA_THEME_SETTINGS', 'astra-settings');
+define('ASTRA_THEME_DIR', trailingslashit(get_template_directory()));
+define('ASTRA_THEME_URI', trailingslashit(esc_url(get_template_directory_uri())));
+define('ASTRA_PRO_UPGRADE_URL', 'https://wpastra.com/pro/?utm_source=dashboard&utm_medium=free-theme&utm_campaign=upgrade-now');
+define('ASTRA_PRO_CUSTOMIZER_UPGRADE_URL', 'https://wpastra.com/pro/?utm_source=customizer&utm_medium=free-theme&utm_campaign=upgrade');
 
 /**
  * Minimum Version requirement of the Astra Pro addon.
  * This constant will be used to display the notice asking user to update the Astra addon to the version defined below.
  */
-define( 'ASTRA_EXT_MIN_VER', '4.1.0' );
+define('ASTRA_EXT_MIN_VER', '4.1.0');
 
 /**
  * Setup helper functions of Astra.
@@ -46,7 +47,7 @@ require_once ASTRA_THEME_DIR . 'inc/theme-update/class-astra-theme-background-up
  * Fonts Files
  */
 require_once ASTRA_THEME_DIR . 'inc/customizer/class-astra-font-families.php';
-if ( is_admin() ) {
+if (is_admin()) {
 	require_once ASTRA_THEME_DIR . 'inc/customizer/class-astra-fonts-data.php';
 }
 
@@ -106,7 +107,7 @@ require_once ASTRA_THEME_DIR . 'inc/schema/class-astra-schema.php';
 /* Setup API */
 require_once ASTRA_THEME_DIR . 'admin/includes/class-astra-api-init.php';
 
-if ( is_admin() ) {
+if (is_admin()) {
 	/**
 	 * Admin Menu Settings
 	 */
@@ -161,14 +162,14 @@ require_once ASTRA_THEME_DIR . 'inc/addons/heading-colors/class-astra-heading-co
 require_once ASTRA_THEME_DIR . 'inc/builder/class-astra-builder-loader.php';
 
 // Elementor Compatibility requires PHP 5.4 for namespaces.
-if ( version_compare( PHP_VERSION, '5.4', '>=' ) ) {
+if (version_compare(PHP_VERSION, '5.4', '>=')) {
 	require_once ASTRA_THEME_DIR . 'inc/compatibility/class-astra-elementor.php';
 	require_once ASTRA_THEME_DIR . 'inc/compatibility/class-astra-elementor-pro.php';
 	require_once ASTRA_THEME_DIR . 'inc/compatibility/class-astra-web-stories.php';
 }
 
 // Beaver Themer compatibility requires PHP 5.3 for anonymus functions.
-if ( version_compare( PHP_VERSION, '5.3', '>=' ) ) {
+if (version_compare(PHP_VERSION, '5.3', '>=')) {
 	require_once ASTRA_THEME_DIR . 'inc/compatibility/class-astra-beaver-themer.php';
 }
 
@@ -184,9 +185,26 @@ require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
 /**
  * Converting PNG or JPEG to WebP format ... for faster page loading.  Tom Lin
  */
-function webp( $transforms ) {
-$transforms['image/png'] = array( 'image/png','image/webp');
-return $transforms;
+function webp($transforms)
+{
+	$transforms['image/png'] = array('image/png', 'image/webp');
+	return $transforms;
 }
-add_filter( 'webp_uploads_upload_image_mime_transforms', 'webp' );
+add_filter('webp_uploads_upload_image_mime_transforms', 'webp');
 
+add_action('woocommerce_email_after_order_table', 'add_payment_method_to_admin_new_order', 15, 2);
+
+/**
+ * Add used coupons to the order confirmation email
+ *
+ */
+function add_payment_method_to_admin_new_order($order)
+{
+	if ($order->get_used_coupons()) {
+		echo '<p><strong>' . __('Coupon used') . ':</strong> ';
+		foreach ($order->get_used_coupons() as $coupon) {
+			echo $coupon . "\n";
+		}
+		echo '</p>';
+	} // endif get_used_coupons
+}
