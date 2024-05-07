@@ -48,7 +48,7 @@ class Forminator_Reports {
 	 */
 	public function __construct() {
 
-		add_action( 'wp_footer', array( &$this, 'schedule_reports' ) );
+		add_action( 'init', array( &$this, 'schedule_reports' ) );
 		add_action( 'forminator_process_report', array( &$this, 'process_report' ) );
 	}
 
@@ -58,8 +58,14 @@ class Forminator_Reports {
 	 * @since 1.0
 	 */
 	public function schedule_reports() {
-		if ( ! wp_next_scheduled( 'forminator_process_report' ) ) {
-			wp_schedule_event( time(), 'every_minute', 'forminator_process_report' );
+		// Clear old cron schedule.
+		if ( wp_next_scheduled( 'forminator_process_report' ) ) {
+			wp_clear_scheduled_hook( 'forminator_process_report' );
+		}
+
+		// Create new schedule using AS.
+		if ( false === as_has_scheduled_action( 'forminator_process_report' ) ) {
+			as_schedule_recurring_action( time() + 20, MINUTE_IN_SECONDS, 'forminator_process_report', array(), 'forminator', true );
 		}
 	}
 
@@ -163,6 +169,7 @@ class Forminator_Reports {
 				'reports'   => $report_data,
 			);
 
+			$email_subject = sanitize_text_field( $this->get_subject() );
 			$email_content = self::report_email_html( $params );
 
 			// Change nl to br.
@@ -174,7 +181,7 @@ class Forminator_Reports {
 				'Content-Type: text/html; charset=UTF-8',
 			);
 
-			$mail_sent = wp_mail( $recipient['email'], $this->get_subject(), $email_content, $headers );
+			$mail_sent = wp_mail( $recipient['email'], $email_subject, $email_content, $headers );
 		}
 
 		return $mail_sent;
@@ -188,7 +195,7 @@ class Forminator_Reports {
 	 */
 	public function get_subject() {
 		return sprintf( /* translators: %s: Url for site */
-			esc_html__( 'Here\'s your latest report for %s', 'forminator' ),
+			__( 'Here\'s your latest report for %s', 'forminator' ),
 			site_url()
 		);
 	}

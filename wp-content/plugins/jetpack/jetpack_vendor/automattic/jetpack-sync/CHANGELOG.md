@@ -5,6 +5,108 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.5] - 2024-03-29
+### Changed
+- Update dependencies.
+
+## [2.10.4] - 2024-03-27
+### Fixed
+- Fix handling of error message when sync wpcom rest api could not be enabled [#36578]
+- Jetpack Sync: Prevent Fatal on send upon failing to enable WPCOM REST API feature [#36600]
+
+## [2.10.3] - 2024-03-25
+### Changed
+- Internal updates.
+
+## [2.10.2] - 2024-03-18
+### Changed
+- Internal updates.
+
+## [2.10.1] - 2024-03-14
+### Changed
+- Internal updates.
+
+## [2.10.0] - 2024-03-12
+### Added
+- Sync:Now Sync uses rest api endpoint for enabled sites [#36210]
+
+## [2.9.0] - 2024-03-04
+### Added
+- Sync: Add feature flag for enabling the use of rest api for sending the sync data [#36118]
+- Whitelist the new wpcom_classic_early_release site option [#36111]
+
+## [2.8.1] - 2024-03-01
+### Fixed
+- Jetpack Sync: Ensure Woo HPOS order date fields are properly encoded [#36023]
+
+## [2.8.0] - 2024-02-22
+### Added
+- Ads Settings: Include option to toggle GDPR Consent Banner [#35205]
+
+## [2.7.0] - 2024-02-19
+### Changed
+- Add jetpack_newsletters_publishing_default_frequency to Sync [#35672]
+
+## [2.6.1] - 2024-02-13
+### Changed
+- Internal updates.
+
+## [2.6.0] - 2024-02-12
+### Added
+- Added a new site setting option for opting out of research partners using your site's content. [#35509]
+
+## [2.5.1] - 2024-02-07
+### Changed
+- Update dependencies.
+
+## [2.5.0] - 2024-02-05
+### Changed
+- Jetpack Connection: Add jetpack_package_versions to Sync [#35409]
+- Jetpack Sync: Disable Sync sending while a Pull is in progress [#35339]
+
+## [2.4.2] - 2024-01-18
+### Changed
+- Update dependencies.
+
+## [2.4.1] - 2024-01-15
+### Added
+- Options: synchronize block status option. [#34989]
+
+### Changed
+- Sync: Dedicated sync now disabled for high queue lags only if test request fails. [#34888]
+
+### Fixed
+- Added `is_array` check to `get_items_to_send` to make sure no fatals are thrown on non-array values. [#31552]
+- Jetpack Sync: Fixed buffer sanitization in Sync close endpoint [#34961]
+- Jetpack Sync: Fix restoring post global before enqueuing a post action. [#34990]
+
+## [2.4.0] - 2024-01-04
+### Removed
+- Social: Removed sync option for tweetstorm. [#34330]
+
+## [2.3.0] - 2023-12-20
+### Added
+- Add wpcom_ai_site_prompt option to the site settings endpoint. [#34709]
+
+### Fixed
+- Added preemptive check to break expanding metadata for posts loop in Full Sync. [#34661]
+
+## [2.2.1] - 2023-12-13
+### Changed
+- Refactored loop to improve efficiency and code readability [#34565]
+
+## [2.2.0] - 2023-12-11
+### Added
+- Social: Add auto-conversion option to sync to WPCOM. [#34113]
+
+### Fixed
+- Fixed a missing sanity check in Sync Posts handler logic that created failed builds. [#34548]
+- Sync: Update Full Sync to limit max amount of data sent in one request. [#34390]
+
+## [2.1.2] - 2023-12-06
+### Changed
+- Update dependencies.
+
 ## [2.1.1] - 2023-12-03
 ### Changed
 - Internal updates.
@@ -987,6 +1089,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Packages: Move sync to a classmapped package
 
+[2.10.5]: https://github.com/Automattic/jetpack-sync/compare/v2.10.4...v2.10.5
+[2.10.4]: https://github.com/Automattic/jetpack-sync/compare/v2.10.3...v2.10.4
+[2.10.3]: https://github.com/Automattic/jetpack-sync/compare/v2.10.2...v2.10.3
+[2.10.2]: https://github.com/Automattic/jetpack-sync/compare/v2.10.1...v2.10.2
+[2.10.1]: https://github.com/Automattic/jetpack-sync/compare/v2.10.0...v2.10.1
+[2.10.0]: https://github.com/Automattic/jetpack-sync/compare/v2.9.0...v2.10.0
+[2.9.0]: https://github.com/Automattic/jetpack-sync/compare/v2.8.1...v2.9.0
+[2.8.1]: https://github.com/Automattic/jetpack-sync/compare/v2.8.0...v2.8.1
+[2.8.0]: https://github.com/Automattic/jetpack-sync/compare/v2.7.0...v2.8.0
+[2.7.0]: https://github.com/Automattic/jetpack-sync/compare/v2.6.1...v2.7.0
+[2.6.1]: https://github.com/Automattic/jetpack-sync/compare/v2.6.0...v2.6.1
+[2.6.0]: https://github.com/Automattic/jetpack-sync/compare/v2.5.1...v2.6.0
+[2.5.1]: https://github.com/Automattic/jetpack-sync/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/Automattic/jetpack-sync/compare/v2.4.2...v2.5.0
+[2.4.2]: https://github.com/Automattic/jetpack-sync/compare/v2.4.1...v2.4.2
+[2.4.1]: https://github.com/Automattic/jetpack-sync/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/Automattic/jetpack-sync/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/Automattic/jetpack-sync/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/Automattic/jetpack-sync/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/Automattic/jetpack-sync/compare/v2.1.2...v2.2.0
+[2.1.2]: https://github.com/Automattic/jetpack-sync/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/Automattic/jetpack-sync/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/Automattic/jetpack-sync/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/Automattic/jetpack-sync/compare/v2.0.1...v2.0.2

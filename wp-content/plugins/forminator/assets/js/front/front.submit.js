@@ -78,6 +78,11 @@
 			form.find('.forminator-field--phone').each(function() {
 				var phone_element = $(this);
 				if ( !phone_element.data('required') && 'international' === phone_element.data('validation') ) {
+					var dialCode = '+' + phone_element.intlTelInput( 'getSelectedCountryData' ).dialCode + ' ';
+					var currentInput = phone_element.val();
+					if (dialCode === currentInput)
+						phone_element.val('');
+				} else if ( !phone_element.data('required') && 'standard' === phone_element.data('validation') ) {
 					var dialCode = '+' + phone_element.intlTelInput( 'getSelectedCountryData' ).dialCode;
 					var currentInput = phone_element.val();
 					if (dialCode === currentInput)
@@ -553,7 +558,6 @@
 						}
 
 						submitEvent.currentTarget.submit();
-						self.disable_form_submit( self, false );
 
 						self.showLeadsLoader( self );
 					}
@@ -563,9 +567,11 @@
 				var paymentIsHidden = self.$el.find('div[data-is-payment="true"]')
 					.closest('.forminator-row, .forminator-col').hasClass('forminator-hidden');
 				if ( self.$el.data('forminatorFrontPayment') && ! paymentIsHidden && ! $saveDraft ) {
-					self.$el.trigger('payment.before.submit.forminator', [formData, function () {
-						submitCallback.apply(thisForm);
-					}]);
+					setTimeout( function() {
+						self.$el.trigger('payment.before.submit.forminator', [formData, function () {
+							submitCallback.apply(thisForm);
+						}]);
+					}, 200 );
 				} else {
 					submitCallback.apply(thisForm);
 				}
@@ -716,20 +722,22 @@
 
 				// Recaptcha
 				if ( $captcha_field.hasClass( 'forminator-g-recaptcha' ) ) {
+					var captcha_widget  = $captcha_field.data( 'forminator-recapchta-widget' );
 
-					var captcha_widget  = $captcha_field.data( 'forminator-recapchta-widget' ),
-						$captcha_response = window.grecaptcha.getResponse( captcha_widget );
+					if ( 0 !== $captcha_field.children().length ) {
+						var $captcha_response = window.grecaptcha.getResponse( captcha_widget );
 
-					if ( captcha_size === 'invisible' ) {
-						if ( $captcha_response.length === 0 ) {
-							window.grecaptcha.execute( captcha_widget );
-							return false;
+						if ( captcha_size === 'invisible' ) {
+							if ( $captcha_response.length === 0 ) {
+								window.grecaptcha.execute( captcha_widget );
+								return false;
+							}
 						}
-					}
 
-					// reset after getResponse
-					if ( self.$el.hasClass( 'forminator_ajax' ) && 'forminator:preSubmit:paypal' !== e.type ) {
-						window.grecaptcha.reset(captcha_widget);
+						// reset after getResponse
+						if ( self.$el.hasClass( 'forminator_ajax' ) && 'forminator:preSubmit:paypal' !== e.type ) {
+							window.grecaptcha.reset(captcha_widget);
+						}
 					}
 
 				// Hcaptcha
@@ -756,12 +764,12 @@
 					$captcha_field.removeClass("error");
 				}
 
-				if ($captcha_response.length === 0) {
+				if ( ! $captcha_response || $captcha_response.length === 0) {
 					if (!$captcha_field.hasClass("error")) {
 						$captcha_field.addClass("error");
 					}
 
-					$target_message.html('<label class="forminator-label--error"><span>' + window.ForminatorFront.cform.captcha_error + '</span></label>');
+					$target_message.removeAttr("aria-hidden").html('<label class="forminator-label--error"><span>' + window.ForminatorFront.cform.captcha_error + '</span></label>');
 
 					if ( ! self.settings.inline_validation ) {
 						self.focus_to_element($target_message);
@@ -1642,7 +1650,7 @@
 		},
 
 		disable_form_submit: function ( form, disable  ) {
-			$( form ).find( '.forminator-button-submit' ).attr( 'disabled', disable );
+			form.$el.find( '.forminator-button-submit' ).prop( 'disabled', disable );
 		},
 
 		showLeadsLoader: function ( quiz  ) {

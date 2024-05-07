@@ -66,37 +66,28 @@ class Forminator_Export {
 	public function __construct() {
 		add_action( 'wp_loaded', array( &$this, 'listen_for_csv_export' ) );
 		add_action( 'wp_loaded', array( &$this, 'listen_for_saving_export_schedule' ) );
-		// schedule for check and send export.
-		add_action( 'wp_footer', array( &$this, 'schedule_entries_exporter' ) );
 
+		// schedule for check and send export.
+		add_action( 'init', array( &$this, 'schedule_entries_exporter' ) );
 		add_action( 'forminator_send_export', array( &$this, 'maybe_send_export' ) );
-		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
 	}
 
 	/**
 	 * Set up the schedule
 	 *
 	 * @since 1.0
+	 * @since 1.27 Change from WP cron to Action Scheduler
 	 */
 	public function schedule_entries_exporter() {
-		if ( ! wp_next_scheduled( 'forminator_send_export' ) ) {
-			wp_schedule_event( time(), 'every_minute', 'forminator_send_export' );
+		// Clear old cron schedule.
+		if ( wp_next_scheduled( 'forminator_send_export' ) ) {
+			wp_clear_scheduled_hook( 'forminator_send_export' );
 		}
-	}
 
-	/**
-	 * Add custom cron interval
-	 *
-	 * @param array $schedules Cron intervals.
-	 * @return array
-	 */
-	public function add_cron_schedule( $schedules ) {
-		$schedules['every_minute'] = array(
-			'interval' => MINUTE_IN_SECONDS,
-			'display'  => esc_html__( 'Every minute', 'forminator' ),
-		);
-
-		return $schedules;
+		// Create new schedule using AS.
+		if ( false === as_has_scheduled_action( 'forminator_send_export' ) ) {
+			as_schedule_recurring_action( time() + 10, MINUTE_IN_SECONDS, 'forminator_send_export', array(), 'forminator', true );
+		}
 	}
 
 	/**
@@ -110,7 +101,7 @@ class Forminator_Export {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'manage_forminator' ) ) {
+		if ( ! forminator_get_permission( 'forminator-entries' ) ) {
 			return;
 		}
 
@@ -142,6 +133,17 @@ class Forminator_Export {
 		);
 		update_option( 'forminator_exporter_log', $logs );
 
+		/**
+		 * Action hook to trigger before Manual Export download.
+		 *
+		 * @param int $form_id Form ID
+		 * @param string $form_type Form type(form/quiz/poll)
+		 *
+		 * @since 1.27.0
+		 *
+		 */
+		do_action( 'forminator_before_manual_export_download', $form_id, $type );
+
 		$fp = fopen( 'php://output', 'w' ); // phpcs:disable WordPress.WP.AlternativeFunctions.file_system_read_fopen -- disable phpcs because it writes memory
 		ob_start();
 		foreach ( $data as $fields ) {
@@ -161,6 +163,7 @@ class Forminator_Export {
 
 		// make php send the generated csv lines to the browser.
 		exit( $output ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+
 	}
 
 	/**
@@ -248,6 +251,20 @@ class Forminator_Export {
 			forminator_maybe_log( $data[ $key ] );
 
 			update_option( 'forminator_entries_export_schedule', $data );
+
+			/**
+			 * Action hook to trigger after Schedule Export save.
+			 *
+			 * @param int $form_id Form ID
+			 * @param string $form_type Form type(form/quiz/poll)
+			 * @param array $data all the export form data
+			 *
+			 * @since 1.27.0
+			 *
+			 */
+
+			do_action( 'forminator_after_export_schedule_save', $form_id, $form_type, $data );
+
 			$redirect = remove_query_arg( array( 'err_msg' ) );
 
 			$referer = wp_get_referer();
@@ -640,6 +657,9 @@ class Forminator_Export {
 
 				$result = array();
 				foreach ( $entries as $entry ) {
+					if ( empty( $entry->meta_data ) ) {
+						continue;
+					}
 					if ( $entry->entry_id > $latest_exported_entry_id ) {
 						$export_result->new_entries_count ++;
 					}
@@ -724,8 +744,7 @@ class Forminator_Export {
 		);
 
 		if ( ! $copies ) {
-			$data[] = '';
-			return $data;
+			$copies[ $mapper['meta_key'] ] = array();
 		}
 
 		$temp_data = array();

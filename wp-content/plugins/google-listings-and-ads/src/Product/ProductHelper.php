@@ -148,7 +148,6 @@ class ProductHelper implements Service {
 			// if there are no Google IDs left then this product is no longer considered "synced"
 			$this->mark_as_unsynced( $product );
 		}
-
 	}
 
 	/**
@@ -235,6 +234,30 @@ class ProductHelper implements Service {
 		if ( empty( $visibility ) ) {
 			$this->meta_handler->update_visibility( $product, ChannelVisibility::SYNC_AND_SHOW );
 		}
+	}
+
+	/**
+	 * Update a product's channel visibility.
+	 *
+	 * @param WC_Product $product
+	 * @param string     $visibility
+	 */
+	public function update_channel_visibility( WC_Product $product, string $visibility ): void {
+		try {
+			$product = $this->maybe_swap_for_parent( $product );
+		} catch ( InvalidValue $exception ) {
+			// The error has been logged within the call of maybe_swap_for_parent
+			return;
+		}
+
+		try {
+			$visibility = ChannelVisibility::cast( $visibility )->get();
+		} catch ( InvalidValue $exception ) {
+			do_action( 'woocommerce_gla_exception', $exception, __METHOD__ );
+			return;
+		}
+
+		$this->meta_handler->update_visibility( $product, $visibility );
 	}
 
 	/**
@@ -369,9 +392,9 @@ class ProductHelper implements Service {
 		}
 
 		return ( ChannelVisibility::DONT_SYNC_AND_SHOW !== $this->get_channel_visibility( $product ) ) &&
-			   ( in_array( $product->get_type(), ProductSyncer::get_supported_product_types(), true ) ) &&
-			   ( 'publish' === $product_status ) &&
-			   $product_visibility;
+			( in_array( $product->get_type(), ProductSyncer::get_supported_product_types(), true ) ) &&
+			( 'publish' === $product_status ) &&
+			$product_visibility;
 	}
 
 	/**
@@ -390,7 +413,7 @@ class ProductHelper implements Service {
 
 		// if it has failed more times than the specified threshold AND if syncing it has failed within the specified window
 		return $failed_attempts > ProductSyncer::FAILURE_THRESHOLD &&
-			   $failed_at > strtotime( sprintf( '-%s', ProductSyncer::FAILURE_THRESHOLD_WINDOW ) );
+			$failed_at > strtotime( sprintf( '-%s', ProductSyncer::FAILURE_THRESHOLD_WINDOW ) );
 	}
 
 	/**

@@ -23,11 +23,15 @@ function forminator_get_admin_cap() {
  * Checks if user is allowed to perform the ajax actions
  *
  * @since 1.0
+ * @since 1.28 Added $slug param.
+ *
+ * @param string $slug The page slug that will be used for identifying permission.
+ *
  * @return bool
  */
-function forminator_is_user_allowed() {
+function forminator_is_user_allowed( $slug = '' ) {
 	return current_user_can(
-		forminator_get_admin_cap()
+		forminator_get_permission( $slug )
 	);
 }
 
@@ -108,11 +112,12 @@ function forminator_ajax_url() {
  *
  * @since 1.0
  * @since 1.17 Added $query_arg
+ * @since 1.28 Added $page_slug For determining capability to check.
  *
  * @param $action
  */
-function forminator_validate_ajax( $action, $query_arg = false ) {
-	if ( ! check_ajax_referer( $action, $query_arg, false ) || ! forminator_is_user_allowed() ) {
+function forminator_validate_ajax( $action, $query_arg = false, $page_slug = '' ) {
+	if ( ! check_ajax_referer( $action, $query_arg, false ) || ! forminator_is_user_allowed( $page_slug ) ) {
 		wp_send_json_error( esc_html__( 'Invalid request, you are not allowed to do that action.', 'forminator' ) );
 	}
 }
@@ -412,7 +417,7 @@ function forminator_print_front_scripts() {
  * @since 1.0
  */
 function forminator_localize_data() {
-	return array(
+	$data = array(
 		'ajaxUrl' => forminator_ajax_url(),
 		'cform'   => array(
 			'processing'                => esc_html__( 'Submitting form, please wait', 'forminator' ),
@@ -446,6 +451,13 @@ function forminator_localize_data() {
 			'loaded_error'    => esc_html__( 'The results could not be loaded.', 'forminator' ),
 		),
 	);
+
+	/**
+	 * Filter localize data
+	 *
+	 * @param array $data Current data array.
+	 */
+	return apply_filters( 'forminator_localize_data', $data );
 }
 
 /**
@@ -810,8 +822,11 @@ function forminator_get_export_logs( $form_id ) {
  * @return mixed
  */
 function forminator_get_current_url() {
-	$url     = wp_get_referer();
-	$post_id = url_to_postid( $url );
+	if ( ! empty( $_SERVER['REQUEST_URI'] ) && false !== strpos( $_SERVER['REQUEST_URI'], 'admin-ajax.php' ) ) {
+		$post_id = url_to_postid( wp_get_referer() );
+	} else {
+		$post_id = get_the_ID();
+	}
 
 	return esc_url( get_permalink( $post_id ) );
 }
@@ -1194,6 +1209,9 @@ function forminator_reset_settings() {
 	 */
 	do_action( 'forminator_before_reset_settings' );
 
+	// Permissions option is deleted inside this function too.
+	forminator_delete_permissions();
+
 	/**
 	 * @see forminator_delete_custom_options()
 	 */
@@ -1223,6 +1241,9 @@ function forminator_reset_settings() {
 	delete_option( "forminator_poll_privacy_settings" );
 	delete_option( "forminator_retain_ip_interval_number" );
 	delete_option( "forminator_retain_ip_interval_unit" );
+	delete_option( 'retain_geolocation_forever' );
+	delete_option( 'forminator_retain_geolocation_interval_number' );
+	delete_option( 'forminator_retain_geolocation_interval_unit' );
 	delete_option( "forminator_retain_poll_submissions_interval_number" );
 	delete_option( "forminator_retain_poll_submissions_interval_unit" );
 	delete_option( "forminator_posts_map" );
@@ -1244,6 +1265,9 @@ function forminator_reset_settings() {
 	delete_option( "forminator_custom_upload_root" );
 	delete_option( "forminator_stripe_configuration" );
 	delete_option( "forminator_paypal_configuration" );
+
+	$usage_tracking = get_option( 'forminator_usage_tracking', false );
+	delete_option( "forminator_usage_tracking" );
 
 	/**
 	 * @see forminator_delete_addon_options()
@@ -1283,9 +1307,11 @@ function forminator_reset_settings() {
 	/**
 	 * Fires after Settings reset
 	 *
-	 * @since 1.6.3
+	 * @param bool $usage_data usage tracking data enable or not
+	 *
+	 * @since 1.27.0
 	 */
-	do_action( 'forminator_after_reset_settings' );
+	do_action( 'forminator_after_reset_settings', $usage_tracking );
 }
 
 /**
@@ -1594,4 +1620,224 @@ function forminator_is_site_connected_to_hub() {
  */
 function forminator_global_tracking() {
 	return apply_filters( 'forminator_global_tracking', true );
+}
+
+/**
+ * Get forminator capabilities.
+ *
+ * @return array
+ */
+function forminator_get_capabilities() {
+	return array(
+		'manage_forminator_modules',
+		'manage_forminator_submissions',
+		'manage_forminator_addons',
+		'manage_forminator_integrations',
+		'manage_forminator_reports',
+		'manage_forminator_settings',
+	);
+}
+
+/**
+ * Apply forminator capabilities.
+ *
+ * @param object $subject    Either WP_User or WP_Role object.
+ * @param array  $permission The current permission setting.
+ *
+ * @return [type]
+ */
+function forminator_apply_capabilities( $subject, $permission ) {
+	if ( false === $subject || is_null( $subject ) ) {
+		return;
+	}
+
+	$caps = forminator_get_capabilities();
+
+	foreach( $caps as $cap ) {
+		if ( $permission[ $cap ] ) {
+			$subject->add_cap( $cap, true );
+		} else {
+			$subject->remove_cap( $cap );
+		}
+	}
+}
+
+/**
+ * Get the appropriate capability based on Permission settings.
+ *
+ * @param string $page_slug Used for determining capability.
+ * Can also be used for getting cap for 'current_user_can' function.
+ *
+ * @return string
+ */
+function forminator_get_permission( $page_slug ) {
+	$default_cap = forminator_get_admin_cap();
+
+	// If current user is admin, allow on all Forminator pages.
+	if ( current_user_can( $default_cap ) || empty( $page_slug ) ) {
+		return $default_cap;
+	}
+
+	$permissions = get_option( 'forminator_permissions', [] );
+	if ( empty( $permissions ) ) {
+		return $default_cap;
+	}
+
+	// Assign appropriate cap based on page_slug.
+	switch( $page_slug ) {
+		case 'forminator':
+		case 'forminator-cform':
+		case 'forminator-cform-wizard':
+		case 'forminator-cform-view':
+		case 'forminator-poll':
+		case 'forminator-poll-wizard':
+		case 'forminator-poll-view':
+		case 'forminator-quiz':
+		case 'forminator-nowrong-wizard':
+		case 'forminator-knowledge-wizard':
+		case 'forminator-quiz-view':
+
+			$cap = 'manage_forminator_modules';
+			break;
+		case 'forminator-entries':
+
+			$cap = 'manage_forminator_submissions';
+			break;
+		case 'forminator-addons':
+
+			$cap = 'manage_forminator_addons';
+			break;
+		case 'forminator-integrations':
+
+			$cap = 'manage_forminator_integrations';
+			break;
+		case 'forminator-reports':
+
+			$cap = 'manage_forminator_reports';
+			break;
+		case 'forminator-settings':
+
+			$cap = 'manage_forminator_settings';
+			break;
+		default:
+
+			$cap = $default_cap;
+			break;
+	}
+
+	// Get current user.
+	$user = wp_get_current_user();
+	$user_allowed = false;
+	$role_allowed = false;
+
+	// Check permissions for excluded users.
+	foreach( $permissions as $permission ) {
+
+		// If role.
+		if ( 'role' === $permission['permission_type'] ) {
+
+			if (
+				! isset( $permission['exclude_users'] ) ||
+				empty( $permission['exclude_users'] )
+			) {
+				$role_allowed = true;
+				continue;
+			}
+
+			// If current user is in excluded users, return the default admin cap.
+			if ( in_array( $user->ID, $permission['exclude_users'] ) ) {
+				$role_allowed = false;
+			} else {
+				$role_allowed = true;
+			}
+		}
+
+		// If user.
+		if ( 'specific' === $permission['permission_type'] && in_array( $user->ID, $permission['specific_user'] ) ) {
+
+			if ( isset( $permission[ $cap ] ) && $permission[ $cap ] ) {
+				$user_allowed = true;
+			} else {
+				$user_allowed = false;
+			}
+		}
+	}
+
+	if (
+		( $user_allowed || $role_allowed ) ||
+		( $user_allowed && ! $role_allowed )
+	) {
+		return $cap;
+	} elseif ( ! $user_allowed || ! $role_allowed ) {
+		return $default_cap;
+	}
+}
+
+/**
+ * Delete forminator permissions and revoke caps.
+ * Used on uninstallation and
+ *
+ * @since 1.28.0
+ */
+function forminator_delete_permissions() {
+	$permissions = get_option( 'forminator_permissions', array() );
+	if ( empty( $permissions ) ) {
+		return;
+	}
+
+	// Get the Forminator caps.
+	$caps = forminator_get_capabilities();
+
+	foreach ( $permissions as $permission ) {
+		// If specific user.
+		if ( 'specific' === $permission['permission_type'] ) {
+
+			// Remove caps from users.
+			foreach ( $permission['specific_user'] as $email ) {
+				$user = get_user_by( 'email', $email );
+
+				if ( false !== $user ) {
+					foreach( $caps as $cap ) {
+						$user->remove_cap( $cap );
+					}
+				}
+			}
+
+		// If role.
+		} else {
+			$role = get_role( $permission['user_role'] );
+
+			// Remove caps from the role.
+			if ( ! is_null( $role ) ) {
+				foreach( $caps as $cap ) {
+					$role->remove_cap( $cap );
+				}
+			}
+		}
+	}
+
+	// Finally, delete the option.
+	delete_option( 'forminator_permissions' );
+}
+
+/*
+ * Searches for $needle in the multidimensional array $haystack.
+ * @url https://stackoverflow.com/a/28473219
+ *
+ * @param mixed $needle The item to search for
+ * @param array $haystack The array to search
+ *
+ * @return array|bool The indices of $needle in $haystack across the
+ *  various dimensions. FALSE if $needle was not found.
+ */
+function forminator_recursive_array_search( $needle, $haystack ) {
+	foreach ( $haystack as $key => $value ) {
+		if ( ! is_array( $value ) && (string) $needle === (string) $value ) {
+			return array( $key );
+		} else if ( is_array( $value ) && $subkey = forminator_recursive_array_search( $needle, $value ) ) {
+			array_unshift( $subkey, $key );
+
+			return $subkey;
+		}
+	}
 }

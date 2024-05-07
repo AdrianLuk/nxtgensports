@@ -3,10 +3,10 @@
 Contributors: rwattner, dgovea
 Donate Link: https://www.paypal.me/StickyHeaderEffects
 Tags: Elementor, Elementor Page Builder, Elements, Elementor Add-ons, Add-ons, Page Builder, Widgets, Briefcasewp
-Requires at least: 4.9.0
-Tested up to: 6.2
+Requires at least: 5.3
+Tested up to: 6.4
 Requires PHP: 7.0
-Stable tag: 1.6.6
+Stable tag: 1.6.10
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,7 +46,7 @@ This plugin is meant to be an add-on to Elementor Pro page builder as it's not a
 == Installation ==
 
 = Minimum Requirements =
-* WordPress 5.0 or greater
+* WordPress 5.3 or greater
 * PHP version 7.0 or greater
 * MySQL version 5.6 or greater
 
@@ -97,6 +97,25 @@ Sticky Header Options for Elementor is light-weight and you can also use only th
 3. Current effects settings.
 
 == Changelog ==
+= 1.6.10 =
+- Maintenance: Wordpress 6.4 compatibility update
+
+= 1.6.9 =
+Fixed: Javascript bug with sections
+Fixed: Header width bug
+Tweaked: Optimized CSS
+
+= 1.6.8 =
+Fixed: Shrink logo bug
+Fixed: Shrink header bug
+Fixed: Transparent header bug
+Fixed: All CSS color and size transitions
+Added: Compatibility with new elementor "mega" menu
+Added: Ability to override logo color change on elements using class "not-logo"
+Tweaked: Logo color change optimized so "full color" option no longer overwrites elementor css settings
+
+= 1.6.7 =
+- Fixed: Transparent header bug
 
 = 1.6.6 =
 - Fixed: Shrink header bug
@@ -242,6 +261,25 @@ Sticky Header Options for Elementor is light-weight and you can also use only th
 - Initial stable release
 
 == Upgrade Notice ==
+= 1.6.10 =
+- Maintenance: Wordpress 6.4 compatibility update
+
+= 1.6.9 =
+Fixed: Javascript bug with sections
+Fixed: Header width bug
+Tweaked: Optimized CSS
+
+= 1.6.8 =
+Fixed: Shrink logo bug
+Fixed: Shrink header bug
+Fixed: Transparent header bug
+Fixed: All CSS color and size transitions
+Added: Compatibility with new elementor "mega" menu
+Added: Ability to override logo color change on elements using class "not-logo"
+Tweaked: Logo color change optimized so "full color" option no longer overwrites elementor css settings
+
+= 1.6.7 =
+- Fixed: Transparent header bug
 
 = 1.6.6 =
 - Fixed: Shrink header bug

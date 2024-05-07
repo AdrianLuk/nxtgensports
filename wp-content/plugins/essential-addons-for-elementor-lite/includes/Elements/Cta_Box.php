@@ -283,7 +283,7 @@ class Cta_Box extends Widget_Base
                 'label' => esc_html__('Content', 'essential-addons-for-elementor-lite'),
                 'type' => Controls_Manager::WYSIWYG,
                 'label_block' => true,
-                'default' => esc_html__('Add a strong one liner supporting the heading above and giving users a reason to click on the button below.', 'essential-addons-for-elementor-lite'),
+                'default' => __('<p>Add a strong one liner supporting the heading above and giving users a reason to click on the button below.</p>', 'essential-addons-for-elementor-lite'),
                 'separator' => 'after',
                 'condition' => [
                     'eael_cta_title_content_type' => 'content',
@@ -348,7 +348,7 @@ class Cta_Box extends Widget_Base
                 'dynamic' => ['active' => true],
                 'label_block' => true,
                 'default' => [
-                    'url' => 'http://',
+                    'url' => '#',
                     'is_external' => '',
                 ],
                 'show_external' => true,
@@ -1062,6 +1062,8 @@ class Cta_Box extends Widget_Base
                 'selectors' => [
                     '{{WRAPPER}} .eael-call-to-action.cta-preset-2:not(.cta-preset-1) .cta-button:after:not(.cta-secondary-button)' => 'background: {{VALUE}};',
                     '{{WRAPPER}} .eael-call-to-action.cta-preset-2:not(.cta-preset-1) .cta-button:hover:not(.cta-secondary-button)' => 'background: {{VALUE}};',
+                    '{{WRAPPER}} .eael-call-to-action .cta-button.effect-1:after' => 'background: {{VALUE}};',
+                    '{{WRAPPER}} .eael-call-to-action .cta-button.effect-2:after' => 'background: {{VALUE}};',
                 ],
                 'condition' => [
                     'eael_cta_btn_is_used_gradient_bg' => '',
@@ -1468,7 +1470,7 @@ class Cta_Box extends Widget_Base
         // content markup
         $contentMarkup = '';
         if ('content' == $settings['eael_cta_title_content_type']) {
-            $contentMarkup .='<p>'.$settings['eael_cta_content'].'</p>';
+            $contentMarkup .= $settings['eael_cta_content'];
         }else if ('template' == $settings['eael_cta_title_content_type']){
             if (!empty($settings['eael_primary_templates'])) {
                 $eael_template_id = $settings['eael_primary_templates'];
@@ -1515,7 +1517,7 @@ class Cta_Box extends Widget_Base
 	    }
     ?>
 	<?php if ('cta-basic' == $settings['eael_cta_type']): ?>
-	<div class="eael-call-to-action cta-basic <?php echo esc_attr($cta_class). ' ' . $settings['eael_cta_preset']; ?>">
+	<div class="eael-call-to-action cta-basic <?php echo esc_attr( $cta_class . ' ' . $settings['eael_cta_preset'] ); ?>">
         <?php
             print $headingMarkup;
             print $contentMarkup;
@@ -1524,7 +1526,7 @@ class Cta_Box extends Widget_Base
 	</div>
 	<?php endif;?>
 	<?php if ('cta-flex' == $settings['eael_cta_type']): ?>
-	<div class="eael-call-to-action cta-flex <?php echo esc_attr($cta_class). ' ' . $settings['eael_cta_preset']; ?>">
+	<div class="eael-call-to-action cta-flex <?php echo esc_attr( $cta_class . ' ' . $settings['eael_cta_preset'] ); ?>">
 	    <div class="content">
             <?php
                 print $headingMarkup;
@@ -1537,11 +1539,11 @@ class Cta_Box extends Widget_Base
 	</div>
 	<?php endif;?>
 	<?php if ('cta-icon-flex' == $settings['eael_cta_type']): ?>
-	<div class="eael-call-to-action cta-icon-flex <?php echo esc_attr($cta_class). ' ' . $settings['eael_cta_preset']; ?>">
+	<div class="eael-call-to-action cta-icon-flex <?php echo esc_attr( $cta_class . ' ' . $settings['eael_cta_preset'] ); ?>">
 	    <div class="icon">
 			<?php if ($icon_is_new || $icon_migrated) {?>
 				<?php if (isset($settings['eael_cta_flex_grid_icon_new']['value']['url'])): ?>
-					<img src="<?php echo esc_attr($settings['eael_cta_flex_grid_icon_new']['value']['url']); ?>" alt="<?php echo esc_attr(get_post_meta($settings['eael_cta_flex_grid_icon_new']['value']['id'], '_wp_attachment_image_alt', true)); ?>" />
+					<img src="<?php echo esc_url( $settings['eael_cta_flex_grid_icon_new']['value']['url'] ); ?>" alt="<?php echo esc_attr(get_post_meta($settings['eael_cta_flex_grid_icon_new']['value']['id'], '_wp_attachment_image_alt', true)); ?>" />
 				<?php else:
                     Icons_Manager::render_icon( $settings['eael_cta_flex_grid_icon_new'] );
 

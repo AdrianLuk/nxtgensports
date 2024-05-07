@@ -46,6 +46,7 @@ use Automattic\WooCommerce\GoogleListingsAndAds\Vendor\League\Container\Definiti
 use Automattic\WooCommerce\GoogleListingsAndAds\Vendor\Psr\Container\ContainerInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Vendor\Psr\Http\Message\RequestInterface;
 use Automattic\WooCommerce\GoogleListingsAndAds\Vendor\Psr\Http\Message\ResponseInterface;
+use Google\Ads\GoogleAds\Util\V14\GoogleAdsFailures;
 use Jetpack_Options;
 
 defined( 'ABSPATH' ) || exit;
@@ -129,16 +130,16 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 * Register guzzle with authorization middleware added.
 	 */
 	protected function register_guzzle() {
-		$callback = function() {
+		$callback = function () {
 			$handler_stack = HandlerStack::create();
 			$handler_stack->remove( 'http_errors' );
 			$handler_stack->push( $this->error_handler(), 'http_errors' );
-			$handler_stack->push( $this->add_auth_header() );
+			$handler_stack->push( $this->add_auth_header(), 'auth_header' );
 			$handler_stack->push( $this->add_plugin_version_header(), 'plugin_version_header' );
 
 			// Override endpoint URL if we are using http locally.
 			if ( 0 === strpos( $this->get_connect_server_url_root()->getValue(), 'http://' ) ) {
-				$handler_stack->push( $this->override_http_url() );
+				$handler_stack->push( $this->override_http_url(), 'override_http_url' );
 			}
 
 			return new GuzzleClient( [ 'handler' => $handler_stack ] );
@@ -152,7 +153,7 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 * Register ads client.
 	 */
 	protected function register_ads_client() {
-		$callback = function() {
+		$callback = function () {
 			return new GoogleAdsClient( $this->get_connect_server_endpoint() );
 		};
 
@@ -187,11 +188,19 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 * @return callable
 	 */
 	protected function error_handler(): callable {
-		return function( callable $handler ) {
-			return function( RequestInterface $request, array $options ) use ( $handler ) {
+		return function ( callable $handler ) {
+			return function ( RequestInterface $request, array $options ) use ( $handler ) {
 				return $handler( $request, $options )->then(
 					function ( ResponseInterface $response ) use ( $request ) {
 						$code = $response->getStatusCode();
+
+						$path = $request->getUri()->getPath();
+
+						// Partial Failures come back with a status code of 200, so it's necessary to call GoogleAdsFailures:init every time.
+						if ( strpos( $path, 'google-ads' ) !== false ) {
+							GoogleAdsFailures::init();
+						}
+
 						if ( $code < 400 ) {
 							return $response;
 						}
@@ -219,25 +228,32 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 * @throws AccountReconnect When an account must be reconnected.
 	 */
 	protected function handle_unauthorized_error( RequestInterface $request, ResponseInterface $response ) {
-		// Log original exception before throwing reconnect exception.
-		do_action( 'woocommerce_gla_exception', RequestException::create( $request, $response ), __METHOD__ );
-
 		$auth_header = $response->getHeader( 'www-authenticate' )[0] ?? '';
 		if ( 0 === strpos( $auth_header, 'X_JP_Auth' ) ) {
+			// Log original exception before throwing reconnect exception.
+			do_action( 'woocommerce_gla_exception', RequestException::create( $request, $response ), __METHOD__ );
+
 			$this->set_jetpack_connected( false );
 			throw AccountReconnect::jetpack_disconnected();
 		}
 
-		$this->set_google_disconnected();
-		throw AccountReconnect::google_disconnected();
+		// Exclude listing customers as it will handle it's own unauthorized errors.
+		$path = $request->getUri()->getPath();
+		if ( false === strpos( $path, 'customers:listAccessibleCustomers' ) ) {
+			// Log original exception before throwing reconnect exception.
+			do_action( 'woocommerce_gla_exception', RequestException::create( $request, $response ), __METHOD__ );
+
+			$this->set_google_disconnected();
+			throw AccountReconnect::google_disconnected();
+		}
 	}
 
 	/**
 	 * @return callable
 	 */
 	protected function add_auth_header(): callable {
-		return function( callable $handler ) {
-			return function( RequestInterface $request, array $options ) use ( $handler ) {
+		return function ( callable $handler ) {
+			return function ( RequestInterface $request, array $options ) use ( $handler ) {
 				try {
 					$request = $request->withHeader( 'Authorization', $this->generate_auth_header() );
 
@@ -262,11 +278,11 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 *
 	 * @return callable
 	 */
-	public function add_plugin_version_header(): callable {
-		return function( callable $handler ) {
-			return function( RequestInterface $request, array $options ) use ( $handler ) {
+	protected function add_plugin_version_header(): callable {
+		return function ( callable $handler ) {
+			return function ( RequestInterface $request, array $options ) use ( $handler ) {
 				$request = $request->withHeader( 'x-client-name', $this->get_client_name() )
-								   ->withHeader( 'x-client-version', $this->get_version() );
+					->withHeader( 'x-client-version', $this->get_version() );
 				return $handler( $request, $options );
 			};
 		};
@@ -276,8 +292,8 @@ class GoogleServiceProvider extends AbstractServiceProvider {
 	 * @return callable
 	 */
 	protected function override_http_url(): callable {
-		return function( callable $handler ) {
-			return function( RequestInterface $request, array $options ) use ( $handler ) {
+		return function ( callable $handler ) {
+			return function ( RequestInterface $request, array $options ) use ( $handler ) {
 				$request = $request->withUri( $request->getUri()->withScheme( 'http' ) );
 				return $handler( $request, $options );
 			};

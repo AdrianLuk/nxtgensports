@@ -10,6 +10,7 @@ use MailPoet\Entities\SegmentEntity;
 use MailPoet\Entities\StatisticsOpenEntity;
 use MailPoet\Entities\SubscriberEntity;
 use MailPoet\Subscribers\Statistics\SubscriberStatisticsRepository;
+use MailPoetVendor\Carbon\Carbon;
 use MailPoetVendor\Doctrine\ORM\EntityManager;
 use MailPoetVendor\Doctrine\ORM\QueryBuilder;
 
@@ -35,13 +36,14 @@ class StatisticsOpensRepository extends Repository {
 
   public function recalculateSubscriberScore(SubscriberEntity $subscriber): void {
     $subscriber->setEngagementScoreUpdatedAt(new \DateTimeImmutable());
-    $newslettersSentCount = $this->subscriberStatisticsRepository->getTotalSentCount($subscriber);
+    $yearAgo = Carbon::now()->subYear();
+    $newslettersSentCount = $this->subscriberStatisticsRepository->getTotalSentCount($subscriber, $yearAgo);
     if ($newslettersSentCount < 3) {
       $subscriber->setEngagementScore(null);
       $this->entityManager->flush();
       return;
     }
-    $opensCount = $this->subscriberStatisticsRepository->getStatisticsOpenCount($subscriber);
+    $opensCount = $this->subscriberStatisticsRepository->getStatisticsOpenCount($subscriber, $yearAgo);
     $score = ($opensCount / $newslettersSentCount) * 100;
     $subscriber->setEngagementScore($score);
     $this->entityManager->flush();
@@ -90,5 +92,21 @@ class StatisticsOpensRepository extends Repository {
       ->where('opens.subscriber = :subscriber')
       ->orderBy('queue.newsletterRenderedSubject')
       ->setParameter('subscriber', $subscriber->getId());
+  }
+
+  /** @param int[] $ids */
+  public function deleteByNewsletterIds(array $ids): void {
+    $this->entityManager->createQueryBuilder()
+      ->delete(StatisticsOpenEntity::class, 's')
+      ->where('s.newsletter IN (:ids)')
+      ->setParameter('ids', $ids)
+      ->getQuery()
+      ->execute();
+
+    // delete was done via DQL, make sure the entities are also detached from the entity manager
+    $this->detachAll(function (StatisticsOpenEntity $entity) use ($ids) {
+      $newsletter = $entity->getNewsletter();
+      return $newsletter && in_array($newsletter->getId(), $ids, true);
+    });
   }
 }

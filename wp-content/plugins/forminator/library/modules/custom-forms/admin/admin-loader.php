@@ -359,7 +359,7 @@ class Forminator_Custom_Form_Admin extends Forminator_Admin_Module {
 	 * @return array
 	 */
 	public static function get_default_settings( $name, $settings = array() ) {
-		return array_merge(
+		$default_settings = array_merge(
 			array(
 				'formName'             => $name,
 				'pagination-header'    => 'nav',
@@ -383,6 +383,15 @@ class Forminator_Custom_Form_Admin extends Forminator_Admin_Module {
 			),
 			$settings
 		);
+
+		/**
+		 * Filter default settings for forms
+		 *
+		 * @param array $default_settings Default settings.
+		 */
+		$default_settings = apply_filters( 'forminator_form_default_settings', $default_settings );
+
+		return $default_settings;
 	}
 
 	/**
@@ -477,7 +486,7 @@ class Forminator_Custom_Form_Admin extends Forminator_Admin_Module {
 	 * @param string $title Name.
 	 * @param string $status Status.
 	 * @param object $template Template.
-	 * @return int post ID
+	 * @return WP_Error post ID
 	 */
 	public static function update( $id, $title, $status, $template ) {
 		if ( is_null( $id ) || $id <= 0 ) {
@@ -539,10 +548,12 @@ class Forminator_Custom_Form_Admin extends Forminator_Admin_Module {
 		}
 
 		// Handle quiz questions
-		$form_model->notifications = $notifications;
+		$form_model->notifications      = $notifications;
+		$settings['notification_count'] = ! empty( $notifications ) ? count( $notifications ) : 0;
 
-		$form_model->name     = sanitize_title( $title );
-		$settings['formName'] = sanitize_text_field( $title );
+		$form_model->name            = sanitize_title( $title );
+		$settings['formName']        = sanitize_text_field( $title );
+		$settings['previous_status'] = get_post_status( $id );
 
 		$form_model->settings = $settings;
 

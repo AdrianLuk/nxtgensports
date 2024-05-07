@@ -82,7 +82,7 @@ class Jetpack_Admin {
 			$site_products         = array_column( Jetpack_Plan::get_products(), 'product_slug' );
 			$has_anti_spam_product = count( array_intersect( array( 'jetpack_anti_spam', 'jetpack_anti_spam_monthly' ), $site_products ) ) > 0;
 
-			if ( Jetpack_Plan::supports( 'antispam' ) || $has_anti_spam_product ) {
+			if ( Jetpack_Plan::supports( 'akismet' ) || Jetpack_Plan::supports( 'antispam' ) || $has_anti_spam_product ) {
 				// Prevent Akismet from adding a menu item.
 				add_action(
 					'admin_menu',
@@ -163,6 +163,8 @@ class Jetpack_Admin {
 	 * There is a core patch in trac that would make this unnecessary.
 	 *
 	 * @link https://core.trac.wordpress.org/ticket/39050
+	 *
+	 * @return never
 	 */
 	public static function customizer_redirect() {
 		wp_safe_redirect(
@@ -179,6 +181,8 @@ class Jetpack_Admin {
 	 * Handle the Additional CSS redirect to the Jetpack settings Theme Enhancements section.
 	 *
 	 * @since 11.0
+	 *
+	 * @return never
 	 */
 	public static function theme_enhancements_redirect() {
 		wp_safe_redirect(
@@ -596,22 +600,6 @@ class Jetpack_Admin {
 			),
 			true
 		) ) {
-			return false;
-		}
-
-		// Disable all JITMs on pages where the recommendations banner is displaying.
-		if (
-			in_array(
-				$screen_id,
-				array(
-					'dashboard',
-					'plugins',
-					'jetpack_page_stats',
-				),
-				true
-			)
-			&& \Jetpack_Recommendations_Banner::can_be_displayed()
-		) {
 			return false;
 		}
 

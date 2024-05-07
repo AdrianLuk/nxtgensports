@@ -2,10 +2,10 @@
 Contributors: automattic, google, woocommerce
 Tags: woocommerce, google, listings, ads
 Requires at least: 5.9
-Tested up to: 6.3
+Tested up to: 6.5
 Requires PHP: 7.4
 Requires PHP Architecture: 64 Bits
-Stable tag: 2.5.4
+Stable tag: 2.6.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -60,7 +60,7 @@ Create a new Google Ads account through Google Listings & Ads and a promotional 
 * PHP Architecture 64 bits
 * MySQL version 5.6 or greater
 
-Visit the [WooCommerce server requirements documentation](https://docs.woocommerce.com/document/server-requirements/) for a detailed list of server requirements.
+Visit the [WooCommerce server requirements documentation](https://woo.com/document/server-requirements/) for a detailed list of server requirements.
 
 = Automatic installation =
 
@@ -111,27 +111,23 @@ Yes, you can run both at the same time, and we recommend it! In the US, advertis
 
 == Changelog ==
 
-= 2.5.4 - 2023-08-29 =
-* Dev - Override vulnerability packages: xmlhttprequest-ssl and ws.
-* Dev - Update trigger method in Hooks Generator Workflow.
+= 2.6.2 - 2024-03-12 =
+* Dev - Fix E2E tests for gtags consent mode.
+* Fix - Fatal error when getAdsLinks response is null.
+* Fix - WordPress 6.4 Compatibility: The modal closed event is not sent when clicking on its overlay.
+* Tweak - WC 8.7 compatibility.
+* Tweak - WP 6.5 compatibility.
 
-= 2.5.3 - 2023-08-22 =
-* Dev - Add Action for Hooks Documentation Generator.
-* Dev - Allow E2E testing with Release Candidates.
-* Dev - Convert E2E tests from Puppeteer to Playwright.
-* Dev - Externalize all WordPress JavaScript packages via Dependency Extraction Webpack Plugin (DEWP).
-* Dev - Fetch WooCommerce L-1 versions for our tests.
-* Dev - Remove legacy HooksDocsGenerator.php file.
-* Dev - Use `merge-trunk-develop-pr` action.
-* Tweak - Apply consistent admin theme colors to common UI components.
-* Update - Google API Client Services package to v0.312.
-* Update - Google Ads library to API V14. (package v19.2.0).
+= 2.6.1 - 2024-03-05 =
+* Add - Consider `ga_gtag_enabled=yes` for  WCGAI >= 2.
+* Add - Google Analytics consent mode support.
+* Add - Support for Google Analytics for WooCommerce version 2.0.0 and above.
+* Dev - Avoid the test-data plugin occasionally missing in the E2E test environment.
+* Fix - Improve WordPress.com account handling.
 
-= 2.5.2 - 2023-08-08 =
-* Fix - Remove `add_woocommerce_extended_task_list_item` and `remove_woocommerce_extended_task_list_item` hooks.
-* Fix - WordPress 6.3 compatibility: The forms and image selector may not work due to "setImmediate" deprecation.
-* Tweak - Use the latest API to add an item to the WC tasks list.
-* Tweak - WC 8.0 compatibility.
-* Tweak - WP 6.3 compatibility.
+= 2.6.0 - 2024-02-27 =
+* Add - Support the new product editor (Product Block Editor).
+* Dev - Fix the compatibility issue in starting E2E test environment due to the default charset change in MariaDB v11.3.1.
+* Fix - 401 handling for connected Ads accounts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/google-listings-and-ads/trunk/changelog.txt).

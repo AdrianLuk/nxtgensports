@@ -410,10 +410,10 @@ function forminator_get_vars( $add_query = false ) {
  */
 function forminator_get_payment_vars() {
 	$vars_list = array(
-		'payment_mode'     => esc_html__( 'Payment Mode', 'forminator' ),
-		'payment_status'   => esc_html__( 'Payment Status', 'forminator' ),
-		'payment_amount'   => esc_html__( 'Payment Amount', 'forminator' ),
-		'payment_currency' => esc_html__( 'Payment Currency', 'forminator' ),
+		'payment_amount'   => esc_html__( 'Amount', 'forminator' ),
+		'payment_currency' => esc_html__( 'Currency', 'forminator' ),
+		'payment_mode'     => esc_html__( 'Mode', 'forminator' ),
+		'payment_status'   => esc_html__( 'Status', 'forminator' ),
 		'transaction_id'   => esc_html__( 'Transaction ID', 'forminator' ),
 	);
 
@@ -503,6 +503,10 @@ function forminator_clear_field_id( $string ) {
  * @return mixed
  */
 function forminator_replace_form_data( $content, Forminator_Form_Model $custom_form = null, Forminator_Form_Entry_Model $entry = null, $get_labels = false, $urlencode = false, $user_meta = false, $is_pdf = false ) {
+	if ( is_null( $content ) ) {
+        $content = '';
+    }
+
 	$data             = Forminator_CForm_Front_Action::$prepared_data;
 	$matches          = array();
 	$field_types      = Forminator_Core::get_field_types();
@@ -639,7 +643,11 @@ function forminator_replace_field_data( $custom_form, $element_id, $data, $quiz_
 			}
 		} elseif ( $is_pdf ) {
 			// Since PDFs use entry meta which is already from the database, it has been processed already.
-			$value = $field_value['value'];
+			if ( is_array( $field_value ) && isset( $field_value['value'] ) ) {
+				$value = $field_value['value'];
+			} else {
+				$value = $field_value;
+			}
 		} else {
 			$selected_values = is_array( $field_value ) ? $field_value : array( $field_value );
 			$value           = implode( ', ', array_keys( array_intersect( array_flip( $field_options ), array_map( 'stripslashes', $selected_values ) ) ) );
@@ -1080,6 +1088,8 @@ function forminator_replace_variables( $content, $id = false, $entry = null ) {
 		$variables = array(
 			// Handle User IP Address variable.
 			'{user_ip}'            => forminator_user_ip(),
+			// Handle Date (F d, Y) variable.
+			'{date}'               => date_i18n( 'F d, Y', forminator_local_timestamp(), true ),
 			// Handle Date (mm/dd/yyyy) variable.
 			'{date_mdy}'           => date_i18n( 'm/d/Y', forminator_local_timestamp(), true ),
 			// Handle Date (dd/mm/yyyy) variable.
@@ -1443,6 +1453,7 @@ function render_entry( $item, $column_name, $field = null, $type = '', $remove_e
 							false !== strpos( $column_name, 'address' ) ||
 							false !== strpos( $column_name, 'upload' ) ||
 							false !== strpos( $column_name, 'postdata' ) ||
+							false !== strpos( $column_name, 'slider' ) ||
 							false !== strpos( $column_name, 'signature' )
 						)
 					) {
@@ -1816,7 +1827,7 @@ function forminator_get_fields_sorted( $sort_attr, $sort_flag = SORT_ASC ) {
 			if ( ! empty( $field_key ) ) {
 				if ( isset( $fields[ $field_key ] ) ) {
 					if ( is_int( $field_key ) ) {
-						$field_key = max( array_keys( $fields ) );
+						$field_key = (int) max( array_keys( $fields ) );
 						$field_key ++;// increase where there is dupe.
 					}
 				}
@@ -2278,15 +2289,7 @@ function forminator_replace_form_payment_data( $content, Forminator_Form_Model $
 	if ( empty( $custom_form ) ) {
 		return $content;
 	}
-	$form_fields = $custom_form->get_fields();
-	if ( ! empty( $form_fields ) && ! empty( $entry ) ) {
-		foreach ( $form_fields as $field ) {
-			$field_type = $field->__get( 'type' );
-			if ( in_array( $field_type, array( 'stripe', 'paypal' ), true ) && ! empty( $entry->meta_data[ $field->slug ] ) ) {
-				$payment_meta = $entry->meta_data[ $field->slug ]['value'];
-			}
-		}
-	}
+	$payment_meta = forminator_payment_data( $content, $custom_form, $entry );
 	if ( ! empty( $payment_meta ) ) {
 		$replaces = array(
 			'{payment_mode}'     => $payment_meta['mode'],
@@ -2300,6 +2303,34 @@ function forminator_replace_form_payment_data( $content, Forminator_Form_Model $
 	}
 
 	return apply_filters( 'forminator_replace_form_payment_data', $content, $custom_form, $entry );
+}
+
+/**
+ * Payment data
+ *
+ * @param $content
+ * @param $custom_form
+ * @param $entry
+ *
+ * @return array|mixed
+ */
+function forminator_payment_data( $content, $custom_form, $entry ) {
+	if ( empty( $custom_form ) ) {
+		return $content;
+	}
+	$payment_meta = array();
+	$form_fields  = $custom_form->get_fields();
+	if ( ! empty( $form_fields ) && ! empty( $entry ) ) {
+		foreach ( $form_fields as $field ) {
+			$field_type = $field->__get( 'type' );
+			if ( in_array( $field_type, array( 'stripe', 'paypal' ), true ) && ! empty( $entry->meta_data[ $field->slug ] ) ) {
+				$payment_meta = $entry->meta_data[ $field->slug ]['value'];
+				$payment_meta['payment_method'] = $field_type;
+			}
+		}
+	}
+
+	return $payment_meta;
 }
 
 /**
@@ -2412,7 +2443,17 @@ function forminator_get_entry_field_value( $entry, $mapper, $sub_meta_key = '', 
 		}
 	}
 
-	return $value;
+	/**
+	 * Filter Get entry field value
+	 *
+	 * @param string $value Current value.
+	 * @param object $entry Forminator_Form_Entry_Model object.
+	 * @param array  $mapper Mapper property.
+	 * @param string $sub_meta_key Sub meta key.
+	 * @param bool   $allow_html Allow HTML.
+	 * @param int    $truncate Truncate.
+	 */
+	return apply_filters( 'forminator_get_entry_field_value', $value, $entry, $mapper, $sub_meta_key, $allow_html, $truncate );
 }
 
 /**
@@ -2464,6 +2505,11 @@ function forminator_custom_upload_root( $dir, $base ) {
 	$custom_upload = get_option( 'forminator_custom_upload' );
 	if ( isset( $custom_upload ) && $custom_upload ) {
 		$upload_root = get_option( 'forminator_custom_upload_root' );
+		$upload_root = basename( $upload_root );
+		if ( ! str_contains( $upload_root, $dir['basedir'] ) ) {
+			$upload_root = $dir['basedir'] . '/' . $upload_root;
+		}
+
 		if ( ! empty( $upload_root ) ) {
 			if ( 'url' === $base ) {
 				$dir_path    = str_replace( $dir['basedir'], '', $upload_root );
@@ -2762,8 +2808,11 @@ function forminator_allowed_mime_types( $mimes = array(), $allow = true ) {
 	}
 	if ( ! $allow ) {
 		$filters = array( 'htm|html', 'js', 'jse', 'jar', 'php', 'php3', 'php4', 'php5', 'phtml', 'svg', 'swf', 'exe', 'html', 'htm', 'shtml', 'xhtml', 'xml', 'css', 'asp', 'aspx', 'jsp', 'sql', 'hta', 'dll', 'bat', 'com', 'sh', 'bash', 'py', 'pl', 'dfxp' );
-		foreach ( $filters as $filter ) {
-			unset( $mimes[ $filter ] );
+		foreach ( $mimes as $mime_key ) {
+			$key = strtolower( $mime_key );
+			if ( in_array( $key, $filters, true ) ) {
+				unset( $mimes[ $mime_key ] );
+			}
 		}
 	}
 

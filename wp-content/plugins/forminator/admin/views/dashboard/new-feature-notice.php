@@ -15,7 +15,7 @@ $banner_2x = forminator_plugin_url() . 'assets/images/Feature_highlight@2x.png';
 		aria-labelledby="forminator-new-feature__title"
 	>
 
-		<div class="sui-box forminator-feature-modal" data-prop="forminator_dismiss_feature_1250" data-nonce="<?php echo esc_attr( wp_create_nonce( 'forminator_dismiss_notification' ) ); ?>">
+		<div class="sui-box forminator-feature-modal" data-prop="forminator_dismiss_feature_1290" data-nonce="<?php echo esc_attr( wp_create_nonce( 'forminator_dismiss_notification' ) ); ?>">
 
 			<div class="sui-box-header sui-flatten sui-content-center">
 
@@ -27,58 +27,44 @@ $banner_2x = forminator_plugin_url() . 'assets/images/Feature_highlight@2x.png';
 					/>
 				</figure>
 
-				<button class="sui-button-icon sui-button-white sui-button-float--right forminator-dismiss-new-feature" data-modal-close>
+				<button class="sui-button-icon sui-button-white sui-button-float--right forminator-dismiss-new-feature" data-type="dismiss" data-modal-close>
 					<span class="sui-icon-close sui-md" aria-hidden="true"></span>
 					<span class="sui-screen-reader-text"><?php esc_html_e( 'Close this dialog.', 'forminator' ); ?></span>
 				</button>
 
-				<h3 class="sui-box-title sui-lg" style="overflow: initial; white-space: initial; text-overflow: initial;"><?php esc_html_e( 'New: Forminator PDF Generator Add-on', 'forminator' ); ?>
-                    <?php if ( ! FORMINATOR_PRO ) { ?>
-                        <span class="sui-tag sui-tag-pro">
-                            <?php esc_html_e( 'PRO', 'forminator' ); ?>
-                        </span>
-                    <?php } ?>
-                </h3>
+				<h3 class="sui-box-title sui-lg" style="overflow: initial; white-space: initial; text-overflow: initial;">
+					<?php esc_html_e( 'New! Range Slider and Receipt Template', 'forminator' ); ?>
+				</h3>
 
 				<p class="sui-description">
 					<?php
 					printf(
-					/* Translators: 1. User name 2. Opening <strong> tag, 2. closing <strong> tag, 3. Opening <a> tag with forminator setting data section url, 2. closing <a> tag  */
-						esc_html__( 'Hey %s! We are thrilled to announce the release of the Forminator PDF Generator Add-on! This new feature allows you to easily generate high-quality PDFs from your Forminator forms and surveys.', 'forminator' ),
-						esc_html( ucfirst( $user->display_name ) )
+						/* translators: 1. Open 'b' tag 2. Close 'b' tag */
+						esc_html__( 'We\'re thrilled to announce two exciting additions to our toolkit: the %1$sSlider Field%2$s and a brand-new %1$sReceipt template%2$s  for the %1$sForminator PDF Generator Add-on%2$s. The Slider Field supports single and range slider types that enhance user interaction by allowing easy numeric value selections.', 'forminator' ),
+						'<b>',
+						'</b>'
 					);
 					?>
 				</p>
-				<div class="sui-modal-list">
-					<h3><?php esc_html_e( 'PDF Generator Add-on Features:', 'forminator' ); ?></h3>
-					<ol>
-						<li><span class="sui-icon-check sui-sm" aria-hidden="true"></span>
-							<span><?php esc_html_e( 'Create one or more PDFs for your forms.', 'forminator' ); ?></span>
-                        </li>
-						<li><span class="sui-icon-check sui-sm" aria-hidden="true"></span>
-							<span><?php esc_html_e( 'Generate PDF files in seconds with our easy-to-use pre-designed templates.', 'forminator' ); ?></span>
-                        </li>
-						<li><span class="sui-icon-check sui-sm" aria-hidden="true"></span>
-							<span><?php esc_html_e( 'Send customized email notifications to admins and visitors with PDF attachments.', 'forminator' ); ?></span>
-                        </li>
-						<li><span class="sui-icon-check sui-sm" aria-hidden="true"></span>
-							<span><?php esc_html_e( 'Download the PDFs of the form submissions on the Submissions page.', 'forminator' ); ?></span>
-                        </li>
-						<li><span class="sui-icon-check sui-sm" aria-hidden="true"></span>
-							<span>
-								<?php esc_html_e( 'Generate payment receipts, invoices, and quotations.', 'forminator' ); ?>
-                            	<span class="sui-tag sui-tag-blue sui-tag-sm"><?php esc_html_e( 'COMING SOON', 'forminator' ); ?></span>
-							</span>
-                        </li>
-					</ol>
-				</div>
+				<br />
+				<p class="sui-description">
+					<?php
+					printf(
+						/* translators: 1. Open 'b' tag 2. Close 'b' tag */
+						esc_html__( 'Whereas, the %1$sReceipt template%2$s helps you generate professional-looking receipts that you can send to your clients after they make a payment on your site. Both features are guaranteed to enrich your experience and efficiency.', 'forminator' ),
+						'<b>',
+						'</b>'
+					);
+					?>
+				</p>
+
 			</div>
 
 			<div class="sui-box-footer sui-flatten sui-content-center">
 
 				<button class="sui-button forminator-dismiss-new-feature" data-modal-close>
-                    <?php esc_html_e( 'Awesome, Let\'s go!', 'forminator' ); ?>
-                </button>
+					<?php esc_html_e( 'Got it!', 'forminator' ); ?>
+				</button>
 
 			</div>
 
@@ -89,21 +75,25 @@ $banner_2x = forminator_plugin_url() . 'assets/images/Feature_highlight@2x.png';
 </div>
 
 <script type="text/javascript">
-	jQuery( '#forminator-new-feature .forminator-dismiss-new-feature' ).on( 'click', function( e ) {
-		e.preventDefault();
+  jQuery('#forminator-new-feature .forminator-dismiss-new-feature').on('click', function (e) {
+    e.preventDefault()
 
-		var $notice = jQuery( e.currentTarget ).closest( '.forminator-feature-modal' );
-		var ajaxUrl = '<?php echo esc_url( forminator_ajax_url() ); ?>';
+    var $notice = jQuery(e.currentTarget).closest('.forminator-feature-modal'),
+      ajaxUrl = '<?php echo esc_url( forminator_ajax_url() ); ?>',
+      dataType = jQuery(this).data('type'),
+      ajaxData = {
+        action: 'forminator_dismiss_notification',
+        prop: $notice.data('prop'),
+        _ajax_nonce: $notice.data('nonce')
+      }
 
-		jQuery.post(
-			ajaxUrl,
-			{
-				action: 'forminator_dismiss_notification',
-				prop: $notice.data('prop'),
-				_ajax_nonce: $notice.data('nonce')
-			}
-		).always( function() {
-			$notice.hide();
-		});
-	});
+    if ( 'save' === dataType ) {
+      ajaxData['usage_value'] = jQuery('#forminator-new-feature-toggle').is(':checked')
+    }
+
+    jQuery.post(ajaxUrl, ajaxData)
+      .always(function () {
+        $notice.hide()
+      })
+  })
 </script>

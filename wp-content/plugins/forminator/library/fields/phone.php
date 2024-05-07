@@ -162,14 +162,14 @@ class Forminator_Phone extends Forminator_Field {
 		$id                    = self::get_property( 'element_id', $field );
 		$name                  = $id;
 		$ariaid                = $id;
-		$id                    = 'forminator-field-' . $id . '_' . Forminator_CForm_Front::$uid;
+		$id                    = self::get_field_id( $id );
 		$required              = self::get_property( 'required', $field, false, 'bool' );
 		$ariareq               = 'false';
 		$design                = $this->get_form_style( $settings );
 		$placeholder           = $this->sanitize_value( self::get_property( 'placeholder', $field ) );
 		$value                 = esc_html( self::get_property( 'value', $field ) );
 		$national_country      = self::get_property( 'phone_national_country', $field, 'AF' );
-		$international_country = self::get_property( 'phone_international_country', $field, 'AF' );
+		$international_country = self::get_property( 'phone_international_country', $field, 'US' );
 		$limit                 = esc_html( self::get_property( 'limit', $field, 10 ) );
 		$label                 = esc_html( self::get_property( 'field_label', $field, '' ) );
 		$description           = self::get_property( 'description', $field, '' );

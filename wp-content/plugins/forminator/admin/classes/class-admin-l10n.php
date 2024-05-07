@@ -429,6 +429,9 @@ class Forminator_Admin_L10n {
 				'searching'    => esc_html__( 'Searching', 'forminator' ),
 			),
 			'exporter_logs' => forminator_get_export_logs( forminator_get_form_id_helper() ),
+			'geolocation'   => array(
+				'configure_title' => esc_html__( 'Configure Geolocation', 'forminator' ),
+			),
 		);
 
 		$properties = self::add_notice( $properties );

@@ -135,25 +135,7 @@ class Forminator_Upload extends Forminator_Field {
 
 		$html .= '<div class="forminator-field">';
 
-		if ( $label ) {
-
-			if ( $required ) {
-
-				$html .= sprintf(
-					'<label for="%s" class="forminator-label">%s %s</label>',
-					'forminator-field-' . $uniq_id,
-					$label,
-					forminator_get_required_icon()
-				);
-			} else {
-
-				$html .= sprintf(
-					'<label for="%s" class="forminator-label">%s</label>',
-					'forminator-field-' . $uniq_id,
-					$label
-				);
-			}
-		}
+		$html .= self::get_field_label( $label, 'forminator-field-' . $uniq_id, $required );
 
 		$file_limit_type  = self::get_property( 'file-limit', $field, 'unlimited' );
 		$custom_file_type = self::get_property( 'custom-files', $field, false );
@@ -420,6 +402,15 @@ class Forminator_Upload extends Forminator_Field {
 					);
 				}
 
+				$valid_mime = self::check_mime_type( $file_object['tmp_name'], $file_object['name'] );
+
+				if ( ! $valid_mime ) {
+					return array(
+						'success' => false,
+						'message' => esc_html__( 'Sorry, you are not allowed to upload this file type.', 'forminator' ),
+					);
+				}
+
 				$upload_dir       = wp_upload_dir(); // Set upload folder.
 				$file_path        = 'upload' === $upload_type ? forminator_upload_root_temp() : forminator_get_upload_path( $form_id, 'uploads' );
 				$file_url         = forminator_get_upload_url( $form_id, 'uploads' );
@@ -510,11 +501,7 @@ class Forminator_Upload extends Forminator_Field {
 							$file_path
 						);
 
-						// wp_generate_attachment_metadata() won't work if you do not include this file.
-						require_once ABSPATH . 'wp-admin/includes/image.php';
-
-						// Generate and save the attachment metas into the database.
-						wp_update_attachment_metadata( $upload_id, wp_generate_attachment_metadata( $upload_id, $file_path ) );
+						self::generate_upload_metadata( $upload_id, $file_path );
 					}
 
 					return array(
@@ -535,6 +522,19 @@ class Forminator_Upload extends Forminator_Field {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Check if content mime type is relevant to passed mime type
+	 *
+	 * @param string $file Full path to the file.
+	 * @param string $file_name The name of the file.
+	 * @return bool
+	 */
+	private static function check_mime_type( string $file, string $file_name ) : bool {
+		$wp_filetype = wp_check_filetype_and_ext( $file, $file_name );
+
+		return ! empty( $wp_filetype['ext'] ) && ! empty( $wp_filetype['type'] );
 	}
 
 	/**
@@ -600,11 +600,7 @@ class Forminator_Upload extends Forminator_Field {
 									$file_path
 								);
 
-								// wp_generate_attachment_metadata() won't work if you do not include this file.
-								require_once ABSPATH . 'wp-admin/includes/image.php';
-
-								// Generate and save the attachment metas into the database.
-								wp_update_attachment_metadata( $upload_id, wp_generate_attachment_metadata( $upload_id, $file_path ) );
+								self::generate_upload_metadata( $upload_id, $file_path );
 							}
 
 							$file_path_arr[] = $file_path;
@@ -820,11 +816,7 @@ class Forminator_Upload extends Forminator_Field {
 						$file_path
 					);
 
-					// wp_generate_attachment_metadata() won't work if you do not include this file.
-					require_once ABSPATH . 'wp-admin/includes/image.php';
-
-					// Generate and save the attachment metas into the database.
-					wp_update_attachment_metadata( $upload_id, wp_generate_attachment_metadata( $upload_id, $file_path ) );
+					self::generate_upload_metadata( $upload_id, $file_path );
 				}
 			}
 		} else {

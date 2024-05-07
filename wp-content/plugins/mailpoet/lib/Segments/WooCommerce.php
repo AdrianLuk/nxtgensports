@@ -332,7 +332,9 @@ class WooCommerce {
     $now = (Carbon::createFromTimestamp($this->wp->currentTime('timestamp')))->format('Y-m-d H:i:s');
     $source = Source::WOOCOMMERCE_USER;
     foreach ($emails as $email) {
-      $email = strval($this->connection->quote($email));
+      /** @var string $email */
+      $email = $this->connection->quote($email);
+      $email = strval($email);
       $subscribersValues[] = "(1, {$email}, '{$status}', '{$now}', '{$now}', '{$source}')";
     }
 
@@ -518,7 +520,7 @@ class WooCommerce {
 
     $this->connection->executeQuery("
       CREATE TEMPORARY TABLE {$tmpTableName}
-        (`id` int(11) unsigned NOT NULL, UNIQUE(`id`)) AS
+        (`id` int(11) unsigned NOT NULL, UNIQUE(`id`), PRIMARY KEY (`id`)) AS
       {$registeredCustomersSubQuery}
     ");
     // Registered users with a customer role
@@ -569,7 +571,7 @@ class WooCommerce {
 
     $this->connection->executeQuery("
       CREATE TEMPORARY TABLE {$tmpTableName}
-        (`email` varchar(150) NOT NULL, UNIQUE(`email`)) {$collation}
+        (`email` varchar(150) NOT NULL, UNIQUE(`email`), PRIMARY KEY (`email`)) {$collation}
       {$guestCustomersSubQuery}
     ");
 

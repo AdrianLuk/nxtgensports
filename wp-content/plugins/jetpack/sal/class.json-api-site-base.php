@@ -503,6 +503,18 @@ abstract class SAL_Site {
 	}
 
 	/**
+	 * Indicate whether this site was upgraded from a trial plan at some point.
+	 *
+	 * @return bool
+	 */
+	public function was_upgraded_from_trial() {
+		if ( function_exists( 'has_blog_sticker' ) ) {
+			return has_blog_sticker( 'has-upgraded-from-ecommerce-trial' );
+		}
+		return false;
+	}
+
+	/**
 	 * Detect whether a site has the WooCommerce plugin active.
 	 *
 	 * @see /wpcom/public.api/rest/sal/class.json-api-site-jetpack-shadow.php.
@@ -1540,11 +1552,38 @@ abstract class SAL_Site {
 	}
 
 	/**
+	 * Returns an array of reasons why the site is considered commercial.
+	 *
+	 * @return array|null
+	 */
+	public function get_is_commercial_reasons() {
+		$reasons = get_option( '_jetpack_site_is_commercial_reason', array() );
+
+		// Add override as reason if blog has the commercial stickers.
+		if ( empty( $reasons ) && $this->is_commercial() ) {
+			return array( 'manual-override' );
+		} elseif ( ! is_array( $reasons ) ) {
+			return array();
+		}
+
+		return $reasons;
+	}
+
+	/**
 	 * Returns the site's interface selection e.g. calypso vs. wp-admin
 	 *
 	 * @return string
 	 **/
 	public function get_wpcom_admin_interface() {
 		return (string) get_option( 'wpcom_admin_interface' );
+	}
+
+	/**
+	 * Returns whether the site is part of the classic view early release.
+	 *
+	 * @return bool
+	 **/
+	public function get_wpcom_classic_early_release() {
+		return ! empty( get_option( 'wpcom_classic_early_release' ) );
 	}
 }

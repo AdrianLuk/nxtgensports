@@ -12,16 +12,16 @@ namespace WooCommerce\PayPalCommerce\WcGateway\Gateway;
 use Exception;
 use Psr\Log\LoggerInterface;
 use WC_Order;
+use WC_Payment_Tokens;
 use WooCommerce\PayPalCommerce\ApiClient\Endpoint\OrderEndpoint;
 use WooCommerce\PayPalCommerce\ApiClient\Entity\OrderStatus;
 use WooCommerce\PayPalCommerce\ApiClient\Entity\PaymentToken;
 use WooCommerce\PayPalCommerce\ApiClient\Exception\PayPalApiException;
-use WooCommerce\PayPalCommerce\ApiClient\Exception\RuntimeException;
 use WooCommerce\PayPalCommerce\Onboarding\Environment;
 use WooCommerce\PayPalCommerce\Onboarding\State;
 use WooCommerce\PayPalCommerce\Session\SessionHandler;
-use WooCommerce\PayPalCommerce\Subscription\FreeTrialHandlerTrait;
-use WooCommerce\PayPalCommerce\Subscription\Helper\SubscriptionHelper;
+use WooCommerce\PayPalCommerce\WcSubscriptions\FreeTrialHandlerTrait;
+use WooCommerce\PayPalCommerce\WcSubscriptions\Helper\SubscriptionHelper;
 use WooCommerce\PayPalCommerce\Vaulting\PaymentTokenRepository;
 use WooCommerce\PayPalCommerce\WcGateway\Exception\GatewayGenericException;
 use WooCommerce\PayPalCommerce\WcGateway\Exception\PayPalOrderMissingException;
@@ -48,9 +48,17 @@ class PayPalGateway extends \WC_Payment_Gateway {
 	const ORDER_ID_META_KEY             = '_ppcp_paypal_order_id';
 	const ORDER_PAYMENT_MODE_META_KEY   = '_ppcp_paypal_payment_mode';
 	const ORDER_PAYMENT_SOURCE_META_KEY = '_ppcp_paypal_payment_source';
+	const ORDER_PAYER_EMAIL_META_KEY    = '_ppcp_paypal_payer_email';
 	const FEES_META_KEY                 = '_ppcp_paypal_fees';
 	const REFUND_FEES_META_KEY          = '_ppcp_paypal_refund_fees';
 	const REFUNDS_META_KEY              = '_ppcp_refunds';
+	const THREE_D_AUTH_RESULT_META_KEY  = '_ppcp_paypal_3DS_auth_result';
+	const FRAUD_RESULT_META_KEY         = '_ppcp_paypal_fraud_result';
+
+	/**
+	 * List of payment sources wich we are expected to store the payer email in the WC Order metadata.
+	 */
+	const PAYMENT_SOURCES_WITH_PAYER_EMAIL = array( 'paypal', 'paylater', 'venmo' );
 
 	/**
 	 * The Settings Renderer.
@@ -394,13 +402,7 @@ class PayPalGateway extends \WC_Payment_Gateway {
 		}
 
 		if ( $this->is_pay_later_tab() ) {
-			return sprintf(
-			// translators: %1$s is </ br> HTML tag and %2$s, %3$s are the opening and closing of HTML <i> tag.
-				__( 'Let customers pay over time while you get paid up front — at no additional cost.%1$sPayPal’s pay later options are boosting merchant conversion rates and increasing cart sizes by 39%%. %2$s(PayPal Q2 Earnings-2021.)%3$s', 'woocommerce-paypal-payments' ),
-				'</ br>',
-				'<i>',
-				'</ i>'
-			);
+			return '';
 		}
 
 		if ( is_admin() ) {
@@ -498,7 +500,7 @@ class PayPalGateway extends \WC_Payment_Gateway {
 			$wc_order->save();
 		}
 
-		if ( 'card' !== $funding_source && $this->is_free_trial_order( $wc_order ) ) {
+		if ( 'card' !== $funding_source && $this->is_free_trial_order( $wc_order ) && ! $this->subscription_helper->paypal_subscription_id() ) {
 			$user_id = (int) $wc_order->get_customer_id();
 			$tokens  = $this->payment_token_repository->all_for_user_id( $user_id );
 			if ( ! array_filter(
@@ -522,10 +524,21 @@ class PayPalGateway extends \WC_Payment_Gateway {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$saved_paypal_payment = wc_clean( wp_unslash( $_POST['saved_paypal_payment'] ?? '' ) );
 			if ( $saved_paypal_payment ) {
-				$wc_order->update_meta_data( 'payment_token_id', $saved_paypal_payment );
-				$wc_order->save();
+				$payment_token = WC_Payment_Tokens::get( $saved_paypal_payment );
+				if ( $payment_token ) {
+					$wc_order->add_payment_token( $payment_token );
+					$wc_order->save();
 
-				return $this->handle_payment_success( $wc_order );
+					return $this->handle_payment_success( $wc_order );
+				}
+
+				wc_add_notice( __( 'Could not change payment.', 'woocommerce-paypal-payments' ), 'error' );
+
+				return array(
+					'result'       => 'failure',
+					'redirect'     => wc_get_checkout_url(),
+					'errorMessage' => __( 'Could not change payment.', 'woocommerce-paypal-payments' ),
+				);
 			}
 		}
 

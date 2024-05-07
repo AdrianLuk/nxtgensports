@@ -254,14 +254,8 @@ class Forminator_Stripe extends Forminator_Field {
 
 		$html = '<div class="forminator-field">';
 
-		if ( $label ) {
-			$html .= sprintf(
-				'<label for="%s" class="forminator-label">%s %s</label>',
-				$id . '-field',
-				$label,
-				forminator_get_required_icon()
-			);
-		}
+
+		$html .= self::get_field_label( $label, $id . '-field', true );
 
 		if ( 'material' === $settings['form-style'] ) {
 			$classes = 'forminator-input--wrap forminator-input--stripe';
@@ -828,7 +822,7 @@ class Forminator_Stripe extends Forminator_Field {
 
 		try {
 			// Makue sure payment ID exist.
-			if ( ! isset( Forminator_CForm_Front_Action::$prepared_data['paymentid'] ) ) {
+			if ( empty( Forminator_CForm_Front_Action::$prepared_data['paymentid'] ) ) {
 				throw new Exception( esc_html__( 'Stripe Payment ID does not exist.', 'forminator' ) );
 			}
 

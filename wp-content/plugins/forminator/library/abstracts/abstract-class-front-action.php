@@ -227,6 +227,17 @@ abstract class Forminator_Front_Action {
 					$_FILES[ $new_key ] = $_FILES[ $file_key ];
 					unset( $_FILES[ $file_key ] );
 				}
+
+				if ( ! empty( $prepared_data['forminator-multifile-hidden'] ) ) {
+					$multi_file_keys = preg_grep( '/-' . $suffix . '$/', array_keys( $prepared_data['forminator-multifile-hidden'] ) );
+					if ( ! empty( $multi_file_keys ) ) {
+						foreach ( $multi_file_keys as $mfile_key ) {
+							$new_mkey                                                  = str_replace( $suffix, $index + 2, $mfile_key );
+							$prepared_data['forminator-multifile-hidden'][ $new_mkey ] = $prepared_data['forminator-multifile-hidden'][ $mfile_key ];
+							unset( $prepared_data['forminator-multifile-hidden'][ $mfile_key ] );
+						}
+					}
+				}
 			}
 			$prepared_data[ $key ] = $new_value;
 		}
@@ -450,7 +461,7 @@ abstract class Forminator_Front_Action {
 		$response = $this->handle_form();
 
 		if ( self::$is_draft && $response['success'] ) {
-			wp_send_json_success( $this->show_draft_link( self::$module_id, $response ) );
+			wp_send_json_success( self::show_draft_link( self::$module_id, $response ) );
 		}
 
 		// sanitize front end message.
@@ -493,12 +504,13 @@ abstract class Forminator_Front_Action {
 	 *
 	 * @since 1.17.0
 	 */
-	public function show_draft_link( $form_id, $response ) {
+	private static function show_draft_link( $form_id, $response ) {
 		$response['form_id']    = $form_id;
 		$response['type']       = 'save_draft';
 		$draft_link             = esc_url( add_query_arg( 'draft', $response['draft_id'], get_permalink( $response['page_id'] ) ) );
 		$send_draft_email_nonce = esc_attr( 'forminator_nonce_email_draft_link_' . $response['draft_id'] );
 		$message                = str_replace( '{retention_period}', $response['retention_period'], $response['message'] );
+		$message                = forminator_replace_form_data( $message, static::$module_object );
 		$autofill_email         = isset( $response['first_email'] ) ? $response['first_email'] : '';
 
 		ob_start();
@@ -1049,7 +1061,12 @@ abstract class Forminator_Front_Action {
 			$response = array_merge( $response, self::$response_attrs );
 		}
 
-		return $response;
+		/**
+		 * Filter response for failed submission
+		 *
+		 * @param array $response Response.
+		 */
+		return apply_filters( 'forminator_submission_error', $response );
 	}
 
 	/**
@@ -1068,7 +1085,12 @@ abstract class Forminator_Front_Action {
 			$response = array_merge( $response, self::$response_attrs );
 		}
 
-		return $response;
+		/**
+		 * Filter response for successful submission
+		 *
+		 * @param array $response Response.
+		 */
+		return apply_filters( 'forminator_submission_success', $response );
 	}
 
 	/**
